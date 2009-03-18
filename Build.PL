@@ -11,6 +11,8 @@ my $builder = Module::Build->new(
         'Test::More' => 0,
         'version'    => 0,
 		'Net::IMAP::Simple' => 1.17,
+		'Authen::Simple' => 0,
+		'Authen::Simple::Adapter' => 0,
     },
 	recommends => {
 		'Net::IMAP::Simple::SSL' => 0,

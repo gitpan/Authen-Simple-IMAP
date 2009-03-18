@@ -7,7 +7,7 @@ use base 'Authen::Simple::Adapter';
 use Data::Dumper;
 use Params::Validate qw(validate_pos :types);
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 __PACKAGE__->options({
 	host => {
@@ -198,6 +198,11 @@ slashes with double-slashes in your password to keep this from being a problem.
 I don't know if this is portable, a good idea or profoundly dangerously insane.
 If you don't want this to behavior, set this value to false.  
 
+=item * imap
+
+Any object that supports "login" and "errstr" methods.  The obvious choice beinga Net::IMAP::Simple object, but if you want to use something else, here's how 
+you can do it.  This is how I use a mock imap object for the unit tests.  
+
 =back
 
 =item * authenticate( $username, $password ) 
@@ -219,6 +224,12 @@ Net::IMAP::Simple::Plus adds some patches to the otherwise abandoned and broken 
 
 I've never tried this in mod_perl, so including the mod_perl example in 
 the synopsis is pure hubris on my part.
+
+=item *
+
+The unit tests are pretty sparse.  They don't include any tests against real 
+IMAP servers.  They just do a successfull and failed password against a mock
+imap server object.
 
 =item * 
 

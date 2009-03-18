@@ -1,5 +1,9 @@
 Revision history for Authen-Simple-IMAP
 
-0.0.1  Tue Mar 10 11:57:16 2009
-       Initial release.
+0.0.1  2009-02-17
+	Initial release.
 
+0.0.2  2009-02-18
+	* added Authen::Simple to required in Build.PL
+	* documented "imap" param to new
+	* a few other doc tweaks
