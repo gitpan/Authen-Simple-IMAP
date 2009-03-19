@@ -7,7 +7,7 @@ use base 'Authen::Simple::Adapter';
 use Data::Dumper;
 use Params::Validate qw(validate_pos :types);
 
-our $VERSION = '0.0.2';
+our $VERSION = '0.0.3';
 
 __PACKAGE__->options({
 	host => {

@@ -7,3 +7,6 @@ Revision history for Authen-Simple-IMAP
 	* added Authen::Simple to required in Build.PL
 	* documented "imap" param to new
 	* a few other doc tweaks
+
+0.0.3  2009-02-18
+	* fixed perlcritic.t to really skip if Test::Perl::Critic isn't found
