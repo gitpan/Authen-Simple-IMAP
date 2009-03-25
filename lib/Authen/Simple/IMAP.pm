@@ -4,10 +4,10 @@ use warnings;
 use strict;
 use Carp;
 use base 'Authen::Simple::Adapter';
-use Data::Dumper;
+#use Data::Dumper;
 use Params::Validate qw(validate_pos :types);
 
-our $VERSION = '0.0.3';
+our $VERSION = '0.1.0';
 
 __PACKAGE__->options({
 	host => {
@@ -42,38 +42,23 @@ sub init {
 	if ( $args->{log} ) {
 		$self->log($args->{log});
 	}
+	$self->log->info("Starting init routine for Authen::Simple::IMAP");
 	$self->log->debug("Starting init routine\n") if $self->log;
-	#die Dumper($args)."\n";
-	my @imap_args = ($args->{host});
-	# need ALRM because Net::Simple::IMAP waits forever on getline 
-	# and gmail, at least, accepts connection but supplies no line
-	# on IMAP
-	local( $SIG{ALRM} ) = sub { croak "timeout while connecting to server" };
+	my $is_user_provided_object;
+	my @imap_args = $args->{host};
 	if ( defined($args->{timeout}) ) {
 		push(@imap_args, timeout => $args->{timeout});
-		alarm $args->{timeout};
-	}
-	else {
-		alarm 90;
 	}
 	if ( defined($args->{imap}) ) {
-
 		$self->log->info("setting up with user provided IMAP object ".
 			ref($args->{imap})."\n") if $self->log;
+		$is_user_provided_object = 1;
 	}
 	elsif ( $args->{protocol} eq 'IMAPS' ) {
-		local( $SIG{ALRM} ) = sub { croak "timeout while connecting to IMAPS server" };
-		$self->log->info("setting up with IMAPS\n") if $self->log;
 		require Net::IMAP::Simple::SSL;
-		$args->{imap} = Net::IMAP::Simple::SSL->new(@imap_args) ||
-			die "Unable to connect to IMAPS: $Net::IMAPS::Simple::errstr\n";
 	}
 	elsif ( $args->{protocol} eq 'IMAP' ) {
-		local( $SIG{ALRM} ) = sub { croak "timeout while connecting to IMAP server" };
-		$self->log->info("setting up with IMAP (no SSL)\n") if $self->log;
 		require Net::IMAP::Simple;
-		$args->{imap} = Net::IMAP::Simple->new(@imap_args) ||
-			die "Unable to connect to IMAP: $Net::IMAP::Simple::errstr\n";
 	}
 	elsif ( defined($args->{protocol}) ) {
 		croak "Valid protocols are 'IMAP' and 'IMAPS', not '".$args->{protocol}."'";
@@ -81,9 +66,63 @@ sub init {
 	else { 
 		croak "A protocol or an imap object is required";
 	}
-	alarm 0;
-	return $self->SUPER::init($args);
+	my $obj = $self->SUPER::init($args);
+	$obj->{imap_args} = \@imap_args;
+	if ( $is_user_provided_object ) {
+		$obj->{user_provided_object} = $args->{imap};
+	}
+	return $obj;
 }
+
+sub connect {
+	my $self = shift;
+	die 'Should never happen' if !defined($self->{imap_args});
+	if ( $self->{user_provided_object} ) {
+		$self->{imap} = $self->{user_provided_object};
+		return;
+	}
+	my @imap_args = @{$self->{imap_args}};
+	#warn 'imap args  '.join(", ",@imap_args)."\n";
+	my $host = shift(@imap_args);
+	my $args = { @imap_args };
+	unshift(@imap_args,$host);
+
+	local( $SIG{ALRM} ) = sub { croak "timeout while connecting to server" };
+	if ( defined($args->{timeout}) ) {	
+		alarm $args->{timeout};
+	}
+	else {
+		alarm 90;
+	}
+	if ( defined($self->{imap}) ) {
+		$self->log->info("already have a user provided IMAP object ".
+			ref($self->{imap})."\n") if $self->log;
+	}
+	elsif ( $self->{protocol} eq 'IMAPS' ) {
+		local( $SIG{ALRM} ) = sub { 
+			croak "timeout while connecting to IMAPS server at $host" 
+		};
+		$self->log->info("connecting to ".$host." with IMAPS\n")
+			 if $self->log;
+		$self->{imap} = Net::IMAP::Simple::SSL->new(@imap_args) ||
+			die "Unable to connect to IMAPS: $Net::IMAP::Simple::SSL::errstr\n";
+	}
+	elsif ( $self->{protocol} eq 'IMAP' ) {
+		local( $SIG{ALRM} ) = sub { 
+			croak "timeout while connecting to IMAP server at $host" 
+		};
+		$self->log->info("connecting to ".$host." with IMAP (no SSL)\n")
+			 if $self->log;
+		$self->{imap} = Net::IMAP::Simple->new(@imap_args) ||
+			die "Unable to connect to IMAP: $Net::IMAP::Simple::errstr\n";
+	}
+	else { 
+		croak 'This should never happen!';
+	}
+	alarm 0;
+	return $self->{imap};
+}
+
 
 sub check {
 	my @params = validate_pos(@_,
@@ -100,24 +139,30 @@ sub check {
 	);
 	my ($self,$username,$password) = @params;
 	$self->log->debug("Starting check routine\n") if $self->log;
-	#$self->log->debug(Dumper($self->imap));
+	#$self->log->debug("Username = '$username'");
+	#$self->log->debug("Password = '$password'");
 	
 	if ( $self->escape_slash ) {
 		$password =~ s[\\][\\\\]g;
 	}
+	#$self->log->debug("Password post escape_slash = '$password'");
 
-	if ( !defined($self->imap) ) {
-		croak "THIS SHOULD NEVER HAPPEN: no IMAP object";
-	}
+	#delete($self->{imap}) if exists($self->{imap});
+
+	$self->connect;
 
 	$self->log->info('Attempting to authenticate user \''.$username.'\''."\n") 
 		if $self->log;
 	if ( $self->imap->login($username,$password) ) {
 		$self->log->info("Successfully logged in '".$username."'\n") 
 			if $self->log;
+		$self->imap->quit() if  $self->imap->can('quit');
+		$self->imap(undef);
 		return 1;
 	}
-	#$self->log->info('Failed to authenticate user \''.$username.'\': '.$self->imap->errstr)."\n" if $self->log;
+	my $fail = 'Failed to authenticate user \''.$username.'\'';
+	$fail .= ': '.$self->imap->errstr if $self->imap->errstr;
+	$self->log->info($fail) if $self->log;
 	return 0;
 }
 
@@ -138,7 +183,7 @@ Authen::Simple::IMAP - Simple IMAP and IMAPS authentication
     );
 
     if ( $imap->authenticate( $username, $password ) ) {
-           # successfull authentication
+           # successful authentication
     }
 
      # or as a mod_perl Authen handler
@@ -188,20 +233,19 @@ is not installed.
 
 Any object that supports "debug", "info", "error" and "warn".
 
-	log => Log::Log4perl->get_logger(’Authen::Simple::PAM’)
+	log => Log::Log4perl->get_logger('Authen::Simple::PAM')
 
-=item * escape_slash - DEFAULT TRUE
+=item * escape_slash 
 
-In my environment, a password will fail even if it is correct if it contains a
-slash unless that slash is escaped with a preceeding slash.  I replace all
-slashes with double-slashes in your password to keep this from being a problem.
-I don't know if this is portable, a good idea or profoundly dangerously insane.
-If you don't want this to behavior, set this value to false.  
+In some environments, a password containing a slash will fail unless the slash
+is escaped. Set escape_slash to true to escape slashes in passwords, or false
+to leave them unescaped.  This is true by default.
 
 =item * imap
 
-Any object that supports "login" and "errstr" methods.  The obvious choice beinga Net::IMAP::Simple object, but if you want to use something else, here's how 
-you can do it.  This is how I use a mock imap object for the unit tests.  
+Any object that supports "login" and "errstr" methods.  The obvious choice
+being a Net::IMAP::Simple object, but if you want to use something else, here's
+how you can do it.  This is how I use a mock imap object for the unit tests.  
 
 =back
 
@@ -228,7 +272,7 @@ the synopsis is pure hubris on my part.
 =item *
 
 The unit tests are pretty sparse.  They don't include any tests against real 
-IMAP servers.  They just do a successfull and failed password against a mock
+IMAP servers.  They just do a successful and failed password against a mock
 imap server object.
 
 =item * 

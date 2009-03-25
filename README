@@ -10,7 +10,7 @@ SYNOPSIS
         );
 
         if ( $imap->authenticate( $username, $password ) ) {
-               # successfull authentication
+               # successful authentication
         }
 
          # or as a mod_perl Authen handler
@@ -50,19 +50,16 @@ METHODS
         * log   Any object that supports "debug", "info", "error" and
                 "warn".
 
-                        log => Log::Log4perl->get_logger(’Authen::Simple::PAM’)
+                        log => Log::Log4perl->get_logger('Authen::Simple::PAM')
 
-        * escape_slash - DEFAULT TRUE
-                In my environment, a password will fail even if it is
-                correct if it contains a slash unless that slash is escaped
-                with a preceeding slash. I replace all slashes with
-                double-slashes in your password to keep this from being a
-                problem. I don't know if this is portable, a good idea or
-                profoundly dangerously insane. If you don't want this to
-                behavior, set this value to false.
+        * escape_slash
+                In some environments, a password containing a slash will
+                fail unless the slash is escaped. Set escape_slash to true
+                to escape slashes in passwords, or false to leave them
+                unescaped. This is true by default.
 
         * imap  Any object that supports "login" and "errstr" methods. The
-                obvious choice beinga Net::IMAP::Simple object, but if you
+                obvious choice being a Net::IMAP::Simple object, but if you
                 want to use something else, here's how you can do it. This
                 is how I use a mock imap object for the unit tests.
 
@@ -79,7 +76,7 @@ BUGS AND LIMITATIONS
         in the synopsis is pure hubris on my part.
 
     *   The unit tests are pretty sparse. They don't include any tests
-        against real IMAP servers. They just do a successfull and failed
+        against real IMAP servers. They just do a successful and failed
         password against a mock imap server object.
 
     *   This module uses Net::IMAP::Simple, which is broken and abandoned. I

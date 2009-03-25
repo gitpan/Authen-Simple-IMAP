@@ -10,7 +10,7 @@ sub emerg;
 
 sub AUTOLOAD {
 	my $self = shift;
-	print @_;
+	print join(' ',@_)."\n";
 }
 
 package My::Fake::IMAP;

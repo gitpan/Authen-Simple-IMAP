@@ -1,6 +1,6 @@
 ---
 name: Authen-Simple-IMAP
-version: 0.0.3
+version: 0.1.0
 author:
   - 'Dylan Martin <dmartin@sccd.ctc.edu>'
 abstract: Simple IMAP and IMAPS authentication
@@ -19,7 +19,7 @@ recommends:
 provides:
   Authen::Simple::IMAP:
     file: lib/Authen/Simple/IMAP.pm
-    version: 0.0.3
+    version: 0.1.0
 generated_by: Module::Build version 0.32
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html

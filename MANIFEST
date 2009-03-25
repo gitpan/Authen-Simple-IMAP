@@ -5,7 +5,6 @@ README
 lib/Authen/Simple/IMAP.pm
 t/00.load.t
 t/01.mock_imap.t
-t/perlcritic.t
 t/pod.t
 Makefile.PL
 META.yml
