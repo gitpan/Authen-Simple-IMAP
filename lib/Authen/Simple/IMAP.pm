@@ -1,5 +1,6 @@
 package Authen::Simple::IMAP;
 
+use 5.8.6;
 use warnings;
 use strict;
 use Carp;
@@ -7,7 +8,7 @@ use base 'Authen::Simple::Adapter';
 #use Data::Dumper;
 use Params::Validate qw(validate_pos :types);
 
-our $VERSION = '0.1.0';
+our $VERSION = '0.1.2';
 
 __PACKAGE__->options({
 	host => {
@@ -163,6 +164,8 @@ sub check {
 	my $fail = 'Failed to authenticate user \''.$username.'\'';
 	$fail .= ': '.$self->imap->errstr if $self->imap->errstr;
 	$self->log->info($fail) if $self->log;
+	$self->imap->quit() if  $self->imap->can('quit');
+	$self->imap(undef);
 	return 0;
 }
 

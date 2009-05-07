@@ -8,6 +8,7 @@ my $builder = Module::Build->new(
     dist_author         => 'Dylan Martin <dmartin@sccd.ctc.edu>',
     dist_version_from   => 'lib/Authen/Simple/IMAP.pm',
     requires => {
+		'perl'		 => '5.8.6',
         'Test::More' => 0,
         'version'    => 0,
 		'Net::IMAP::Simple' => 1.17,
